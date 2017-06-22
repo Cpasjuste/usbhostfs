@@ -1,0 +1,9 @@
+modules:
+  SceSysmem:
+    nid: 0x3380B323
+    libraries:
+      SceDebugForDriverExtra:
+              kernel: true
+              nid: 0x88758561
+              functions:
+                printf2: 0x02B04343
