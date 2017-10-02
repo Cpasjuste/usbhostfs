@@ -445,7 +445,7 @@ int dir_open(int drive, const char *dirname) {
 
         memset(&open_dirs[did], 0, sizeof(open_dirs[did]));
 
-        dirnum = scandir(fulldir, &entries, filter_dots, alphasort);
+        dirnum = scandir(fulldir, &entries, NULL, alphasort);
         if (dirnum <= 0) {
             V_PRINTF(2, "Could not scan directory %s (%s)\n", fulldir, strerror(errno));
             ret = GETERROR(errno);

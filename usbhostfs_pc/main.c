@@ -515,7 +515,6 @@ void print_help(void) {
     fprintf(stderr, "-v                : Set verbose mode\n");
     fprintf(stderr, "-vv               : More verbose\n");
     fprintf(stderr, "-p pid            : Specify the product ID of the PSP device\n");
-    fprintf(stderr, "-d                : Print GDB transfers\n");
     fprintf(stderr, "-f filename       : Load the host drive mappings from a file\n");
     fprintf(stderr, "-c                : Enable case-insensitive filenames\n");
     fprintf(stderr, "-m                : Convert backslashes to forward slashes\n");
