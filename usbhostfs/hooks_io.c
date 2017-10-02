@@ -48,6 +48,7 @@ static const char *path_to_host(const char *path, char *buffer) {
 
     size_t len = strlen(path);
     if (len > 5) {
+        memset(buffer, 0, len);
         strncpy(buffer, path + 6, len - 5);
         return buffer;
     }
@@ -61,7 +62,7 @@ static int open_host_fd(const char *file, int flags, SceMode mode) {
 
     for (int i = 0; i < MAX_HOST_FD; i++) {
         if (host_fds[i] < 0) {
-            char buf[256];
+            char buf[1024];
             uid = io_open((char *) path_to_host(file, buf), flags, mode);
             host_fds[i] = uid;
             break;
@@ -77,7 +78,7 @@ static int open_host_dfd(const char *dir) {
 
     for (int i = 0; i < MAX_HOST_FD; i++) {
         if (host_fds[i] < 0) {
-            char buf[256];
+            char buf[1024];
             uid = io_dopen(path_to_host(dir, buf));
             host_fds[i] = uid;
             break;
@@ -259,7 +260,7 @@ int _ksceIoRemove(const char *file) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KREMOVE].ref, file);
     }
 
-    char buf[256];
+    char buf[1024];
     int res = io_remove(path_to_host(file, buf));
     //printf("_ksceIoRemove(%s) == 0x%08X\n", file, res);
 
@@ -272,7 +273,7 @@ int _ksceIoRename(const char *oldname, const char *newname) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KRENAME].ref, oldname, newname);
     }
 
-    char buf0[256], buf1[256];
+    char buf0[1024], buf1[1024];
     int res = io_rename(path_to_host(oldname, buf0), path_to_host(newname, buf1));
     //printf("_ksceIoRename(%s, %s) == 0x%08X\n", oldname, newname, res);
 
@@ -324,7 +325,7 @@ int _ksceIoMkdir(const char *dir, SceMode mode) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KMKDIR].ref, dir, mode);
     }
 
-    char buf[256];
+    char buf[1024];
     const char *path = path_to_host(dir, buf);
     // int res = io_mkdir(path, mode); TODO: fix mode ?
     int res = io_mkdir(path, 6);
@@ -339,7 +340,7 @@ int _ksceIoRmdir(const char *path) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KRMDIR].ref, path);
     }
 
-    char buf[256];
+    char buf[1024];
     int res = io_rmdir(path_to_host(path, buf));
     //printf("_ksceIoRmdir(%s) == 0x%08X\n", path, res);
 
@@ -352,7 +353,7 @@ int _ksceIoGetstat(const char *file, SceIoStat *stat) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KGETSTAT].ref, file, stat);
     }
 
-    char buf[256];
+    char buf[1024];
     const char *path = path_to_host(file, buf);
     int res = io_getstat(path, stat);
     //printf("_ksceIoGetstat(%s) == 0x%08X (m=0x%08X a=0x%08X s=%i)\n",
@@ -382,7 +383,7 @@ int _ksceIoChstat(const char *file, SceIoStat *stat, int bits) {
         return TAI_CONTINUE(int, hooks[HOOK_IO_KCHSTAT].ref, file, stat, bits);
     }
 
-    char buf[256];
+    char buf[1024];
     int res = io_chstat(path_to_host(file, buf), stat, bits);
     //printf("_ksceIoChstat(%s) == 0x%08X\n", file, res);
 
