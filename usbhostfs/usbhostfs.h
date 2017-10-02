@@ -24,26 +24,35 @@
 
 #define HOSTFS_PATHMAX (4096)
 
-#define HOSTFS_MAX_BLOCK (64*1024)
+#define HOSTFS_MAX_BLOCK (32*1024)
 
 #define HOSTFS_RENAME_BUFSIZE (1024)
 
 #define HOSTFS_BULK_MAXWRITE  (1024*1024)
 
-#define DEVCTL_GET_INFO       0x02425818
+#define DEVCTL_GET_INFO       0x3001
 
+/*
 struct DevctlGetInfo {
-    /* Total number of blocks */
+    // Total number of blocks
     unsigned int btotal;
-    /* Total number of free blocks */
+    // Total number of free blocks
     unsigned int bfree;
-    /* Unknown */
+    // Unknown
     unsigned int unk;
-    /* Sector size */
+    // Sector size
     unsigned int ssize;
-    /* Number of sectors per block */
+    // Number of sectors per block
     unsigned int sects;
 };
+
+typedef struct {
+    uint64_t max_size;
+    uint64_t free_size;
+    uint32_t cluster_size;
+    void *unk;
+} SceIoDevInfo;
+*/
 
 enum USB_ASYNC_CHANNELS {
     ASYNC_SHELL = 0,
@@ -69,11 +78,12 @@ enum HostFsCommands {
     HOSTFS_CMD_DREAD = 0x8FFC000B,
     HOSTFS_CMD_DCLOSE = 0x8FFC000C,
     HOSTFS_CMD_GETSTAT = 0x8FFC000D,
-    HOSTFS_CMD_CHSTAT = 0x8FFC000E,
-    HOSTFS_CMD_RENAME = 0x8FFC000F,
-    HOSTFS_CMD_CHDIR = 0x8FFC0010,
-    HOSTFS_CMD_IOCTL = 0x8FFC0011,
-    HOSTFS_CMD_DEVCTL = 0x8FFC0012
+    HOSTFS_CMD_GETSTATBYFD = 0x8FFC000E,
+    HOSTFS_CMD_CHSTAT = 0x8FFC000F,
+    HOSTFS_CMD_RENAME = 0x8FFC0010,
+    HOSTFS_CMD_CHDIR = 0x8FFC0011,
+    HOSTFS_CMD_IOCTL = 0x8FFC0012,
+    HOSTFS_CMD_DEVCTL = 0x8FFC0013
 };
 
 struct HostFsTimeStamp {
@@ -258,6 +268,23 @@ struct HostFsGetstatResp {
     int32_t res;
 } __attribute__((packed));
 
+struct HostFsGetstatByFdCmd {
+    struct HostFsCmd cmd;
+    int32_t fid;
+    uint32_t fsnum;
+} __attribute__((packed));
+
+struct HostFsGetstatByFdResp {
+    struct HostFsCmd cmd;
+    SceMode mode;
+    unsigned int attr;
+    SceOff size;
+    SceDateTime ctime;
+    SceDateTime atime;
+    SceDateTime mtime;
+    int32_t res;
+} __attribute__((packed));
+
 struct HostFsChstatCmd {
     struct HostFsCmd cmd;
     int32_t bits;
@@ -307,23 +334,28 @@ struct BulkCommand {
 } __attribute__((packed));
 
 #ifndef PC_SIDE
+// use psp2shell to print
+#ifdef DEBUG
 
-// use psp2shell to print with "printf2"
-int printf2(int num0, int num1, const char *fmt, ...);
+void p2s_debug(const char *fmt, ...);
 
-#define DEBUG_PRINTF(...) printf2(0, 0, ## __VA_ARGS__)
+#define printf p2s_debug
+#define DEBUG_PRINTF p2s_debug
+#define MODPRINTF p2s_debug
+#else
+#define DEBUG_PRINTF(fmt, ...)
 #define MODPRINTF DEBUG_PRINTF
+#endif
 
-int usb_connected(void);
+int usbhostfs_connected(void);
 
 int command_xchg(void *outcmd, int outcmdlen, void *incmd, int incmdlen, const void *outdata,
                  int outlen, void *indata, int inlen);
 
-int usbhost_start(void);
+int usbhostfs_start(void);
 
-int usbhost_stop(void);
+int usbhostfs_stop(void);
 
-#endif
+#endif // PC_SIDE
 
-#endif
-
+#endif // __USBHOSTFS_H__

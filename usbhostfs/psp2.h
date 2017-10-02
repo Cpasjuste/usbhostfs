@@ -3,6 +3,7 @@
 
 #include <libk/stdio.h>
 #include <libk/string.h>
+#include <libk/stdarg.h>
 #include <psp2kern/udcd.h>
 #include <psp2kern/types.h>
 #include <psp2kern/kernel/threadmgr.h>
@@ -11,52 +12,7 @@
 #include <psp2kern/io/dirent.h>
 #include <psp2kern/io/stat.h>
 #include <psp2kern/kernel/modulemgr.h>
-
-int io_init();
-
-int io_exit();
-
-int io_open(char *file, int mode, SceMode mask);
-
-int io_close(SceUID fd);
-
-int usb_read_data(int fd, void *data, int len);
-
-int io_read(SceUID fd, char *data, int len);
-
-int usb_write_data(int fd, const void *data, int len);
-
-int io_write(SceUID fd, const char *data, int len);
-
-SceOff io_lseek(SceUID fd, SceOff ofs, int whence);
-
-int io_ioctl(SceUID fd, unsigned int cmdno, void *indata, int inlen, void *outdata, int outlen);
-
-int io_remove(const char *name);
-
-int io_mkdir(const char *name, SceMode mode);
-
-int io_rmdir(const char *name);
-
-int io_dopen(const char *dir);
-
-int io_dclose(SceUID fd);
-
-int io_dread(SceUID fd, SceIoDirent *dir);
-
-int io_getstat(const char *file, SceIoStat *stat);
-
-int io_chstat(const char *file, SceIoStat *stat, int bits);
-
-int io_rename(const char *oldname, const char *newname);
-
-int io_chdir(const char *dir);
-
-int io_mount();
-
-int io_umount();
-
-int io_devctl(const char *name, unsigned int cmdno, void *indata, int inlen, void *outdata, int outlen);
+#include <psp2kern/kernel/sysmem.h>
 
 typedef unsigned int u32;
 
@@ -113,7 +69,7 @@ struct UsbData {
 #define sceKernelCreateSema ksceKernelCreateSema
 #define sceKernelSignalSema ksceKernelSignalSema
 #define sceKernelWaitSema ksceKernelWaitSema
-#define sceKernelCreateEventFlag(a, b, c, d) ksceKernelCreateEventFlag(a, 0, c, d)
+#define sceKernelCreateEventFlag(a, b, c, d) ksceKernelCreateEventFlag(a, b, c, d)
 #define sceKernelSetEventFlag ksceKernelSetEventFlag
 #define sceKernelClearEventFlag ksceKernelClearEventFlag
 #define sceKernelWaitEventFlag ksceKernelWaitEventFlag

@@ -10,12 +10,12 @@
  * $HeadURL: svn://svn.ps2dev.org/psp/trunk/psplinkusb/usbhostfs/host_driver.c $
  * $Id: host_driver.c 1954 2006-06-28 17:54:29Z tyranid $
  */
-#include <vitasdkkern.h>
-//#include <pspdebug.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+
+#include <psp2kern/io/dirent.h>
+#include <libk/stdlib.h>
+#include <libk/string.h>
+#include <libk/stdio.h>
+
 #include "usbhostfs.h"
 
 int io_init() {
@@ -47,7 +47,7 @@ int io_open(const char *file, int mode, SceMode mask) {
     cmd.mask = mask;
     cmd.fsnum = 0; //arg->fs_num;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), file, strlen(file) + 1, NULL, 0)) {
             /* Set the resultant fid into the arg structure */
             ret = resp.res;
@@ -74,7 +74,7 @@ int io_close(SceUID fd) {
     cmd.cmd.extralen = 0;
     cmd.fid = fd;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), NULL, 0, NULL, 0)) {
             ret = resp.res;
             DEBUG_PRINTF("Returned res %d\n", resp.res);
@@ -121,7 +121,7 @@ int usb_read_data(int fd, void *data, int len) {
         cmd.len = HOSTFS_MAX_BLOCK;
         cmd.fid = fd;
 
-        if (usb_connected()) {
+        if (usbhostfs_connected()) {
             if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), NULL, 0, data, HOSTFS_MAX_BLOCK)) {
                 DEBUG_PRINTF("Read: Returned result %d\n", resp.res);
                 if (resp.res > 0) {
@@ -160,7 +160,7 @@ int usb_read_data(int fd, void *data, int len) {
             cmd.len = residual;
             cmd.fid = fd;
 
-            if (usb_connected()) {
+            if (usbhostfs_connected()) {
                 if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), NULL, 0, data, residual)) {
                     DEBUG_PRINTF("Read: Returned result %d\n", resp.res);
                     if (resp.res > 0) {
@@ -230,7 +230,7 @@ int usb_write_data(int fd, const void *data, int len) {
         cmd.cmd.extralen = HOSTFS_MAX_BLOCK;
         cmd.fid = fd;
 
-        if (usb_connected()) {
+        if (usbhostfs_connected()) {
             if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), data, HOSTFS_MAX_BLOCK, NULL, 0)) {
                 DEBUG_PRINTF("Write: Returned result %d\n", resp.res);
                 if (resp.res > 0) {
@@ -269,7 +269,7 @@ int usb_write_data(int fd, const void *data, int len) {
             cmd.cmd.extralen = residual;
             cmd.fid = fd;
 
-            if (usb_connected()) {
+            if (usbhostfs_connected()) {
                 if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), data, residual, NULL, 0)) {
                     DEBUG_PRINTF("Write: Returned result %d\n", resp.res);
                     if (resp.res > 0) {
@@ -320,7 +320,7 @@ SceOff io_lseek(SceUID fd, SceOff ofs, int whence) {
     cmd.ofs = ofs;
     cmd.whence = whence;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), NULL, 0, NULL, 0)) {
             if (resp.res >= 0) {
                 ret = resp.ofs;
@@ -361,7 +361,7 @@ int io_ioctl(SceUID fd, unsigned int cmdno, void *indata, int inlen, void *outda
     cmd.fid = fd;
     cmd.outlen = outlen;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), indata, inlen, outdata, outlen)) {
             ret = resp.res;
             DEBUG_PRINTF("Returned res %d\n", resp.res);
@@ -392,7 +392,7 @@ int io_remove(const char *name) {
     cmd.cmd.extralen = strlen(name) + 1;
     cmd.fsnum = 0;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), name, strlen(name) + 1, NULL, 0)) {
             ret = resp.res;
             DEBUG_PRINTF("Returned res %d\n", resp.res);
@@ -424,7 +424,7 @@ int io_mkdir(const char *name, SceMode mode) {
     cmd.mode = mode;
     cmd.fsnum = 0;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), name, strlen(name) + 1, NULL, 0)) {
             ret = resp.res;
             DEBUG_PRINTF("Returned res %d\n", resp.res);
@@ -455,7 +455,7 @@ int io_rmdir(const char *name) {
     cmd.cmd.extralen = strlen(name) + 1;
     cmd.fsnum = 0;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), name, strlen(name) + 1, NULL, 0)) {
             ret = resp.res;
             DEBUG_PRINTF("Returned res %d\n", resp.res);
@@ -486,7 +486,7 @@ int io_dopen(const char *dir) {
     cmd.cmd.extralen = strlen(dir) + 1;
     cmd.fsnum = 0;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), dir, strlen(dir) + 1, NULL, 0)) {
             /* Set the resultant did into the arg structure */
             ret = resp.res;
@@ -513,7 +513,7 @@ int io_dclose(SceUID fd) {
     cmd.cmd.extralen = 0;
     cmd.did = fd;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), NULL, 0, NULL, 0)) {
             ret = resp.res;
             DEBUG_PRINTF("Returned result %d\n", resp.res);
@@ -544,7 +544,7 @@ int io_dread(SceUID fd, SceIoDirent *dir) {
     cmd.cmd.extralen = 0;
     cmd.did = fd;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), NULL, 0, dir, sizeof(SceIoDirent))) {
             DEBUG_PRINTF("Dread: Returned result %d\n", resp.res);
             ret = resp.res;
@@ -580,10 +580,49 @@ int io_getstat(const char *file, SceIoStat *stat) {
     cmd.cmd.extralen = strlen(file) + 1;
     cmd.fsnum = 0;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), file, strlen(file) + 1, stat, sizeof(SceIoStat))) {
             ret = resp.res;
             DEBUG_PRINTF("Returned res %d\n", resp.res);
+        } else {
+            MODPRINTF("Error in sending getstat command\n");
+        }
+    } else {
+        MODPRINTF("%s: Error PC side not connected\n", __FUNCTION__);
+    }
+
+    return ret;
+}
+
+int io_getstatbyfd(SceUID fd, SceIoStat *stat) {
+    int ret = -1;
+    struct HostFsGetstatByFdCmd cmd;
+    struct HostFsGetstatByFdResp resp;
+
+    if (stat == NULL) {
+        MODPRINTF("Invalid stat pointer\n");
+        return -1;
+    }
+
+    memset(&cmd, 0, sizeof(cmd));
+    memset(&resp, 0, sizeof(resp));
+    cmd.cmd.magic = HOSTFS_MAGIC;
+    cmd.cmd.command = HOSTFS_CMD_GETSTATBYFD;
+    cmd.cmd.extralen = 0;
+    cmd.fid = fd;
+    cmd.fsnum = 0;
+
+    if (usbhostfs_connected()) {
+        if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), NULL, 0, NULL, 0)) {
+            ret = resp.res;
+            stat->st_mode = resp.mode;
+            stat->st_attr = resp.attr;
+            stat->st_size = resp.size;
+            stat->st_ctime = resp.ctime;
+            stat->st_atime = resp.atime;
+            stat->st_mtime = resp.mtime;
+            //memcpy(stat, &resp.stat, sizeof(SceIoStat));
+            DEBUG_PRINTF("io_getstatbyfd: returned res %d (m=%i a=%i s=%i)\n", resp.res, stat->st_mode, stat->st_attr, stat->st_size);
         } else {
             MODPRINTF("Error in sending getstat command\n");
         }
@@ -631,7 +670,7 @@ int io_chstat(const char *file, SceIoStat *stat, int bits) {
     cmd.mtime.second = stat->st_mtime.second;
     cmd.fsnum = 0;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), file, strlen(file) + 1, NULL, 0)) {
             /* Set the resultant did into the arg structure */
             ret = resp.res;
@@ -676,7 +715,7 @@ int io_rename(const char *oldname, const char *newname) {
     strcpy(buf, oldname);
     strcpy(buf + strlen(oldname) + 1, newname);
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), buf, size, NULL, 0)) {
             /* Set the resultant fid into the arg structure */
             ret = resp.res;
@@ -708,7 +747,7 @@ int io_chdir(const char *dir) {
     cmd.cmd.extralen = strlen(dir) + 1;
     cmd.fsnum = 0;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), dir, strlen(dir) + 1, NULL, 0)) {
             ret = resp.res;
 
@@ -740,22 +779,27 @@ int io_devctl(const char *name, unsigned int cmdno, void *indata, int inlen, voi
     struct HostFsDevctlResp resp;
 
     if (name == NULL) {
-        MODPRINTF("Invalid name (NULL)\n");
+        printf("Invalid name (NULL)\n");
         return -1;
     }
 
     /* Handle the get info devctl */
+    /*
     if (cmdno == DEVCTL_GET_INFO) {
+        printf("cmdno == DEVCTL_GET_INFO\n");
         void **p = (void **) indata;
         if ((p) && (*p)) {
+            printf("OK: indata\n");
             outdata = *p;
-            outlen = sizeof(struct DevctlGetInfo);
+            outlen = sizeof(SceIoDevInfo);
             indata = NULL;
             inlen = 0;
         } else {
+            printf("NOK: indata\n");
             return -1;
         }
     }
+    */
 
     /* Ensure our lengths are zeroed */
     if (indata == NULL) {
@@ -775,7 +819,7 @@ int io_devctl(const char *name, unsigned int cmdno, void *indata, int inlen, voi
     cmd.fsnum = 0;
     cmd.outlen = outlen;
 
-    if (usb_connected()) {
+    if (usbhostfs_connected()) {
         if (command_xchg(&cmd, sizeof(cmd), &resp, sizeof(resp), indata, inlen, outdata, outlen)) {
             ret = resp.res;
             DEBUG_PRINTF("Returned res %d\n", resp.res);

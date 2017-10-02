@@ -15,6 +15,7 @@
 
 #include "usbhostfs.h"
 #include "usbasync.h"
+#include "hooks_io.h"
 
 /* Main USB event flags */
 enum UsbEvents {
@@ -498,11 +499,10 @@ int command_xchg(void *outcmd, int outcmdlen, void *incmd, int incmdlen, const v
 }
 
 int usbLockBus(void) {
-    int k1;
+    int k1 = 0;
     int err;
 
     ENTER_SYSCALL(k1);
-
     err = sceKernelWaitSema(g_mainsema, 1, NULL);
     EXIT_SYSCALL(k1);
 
@@ -510,7 +510,7 @@ int usbLockBus(void) {
 }
 
 int usbUnlockBus(void) {
-    int k1;
+    int k1 = 0;
     int err;
 
     ENTER_SYSCALL(k1);
@@ -589,7 +589,7 @@ int set_ayncreq(void *data, int size) {
 }
 
 /* Call to ensure we are connected to the USB host */
-int usb_connected(void) {
+int usbhostfs_connected(void) {
     return g_connected;
 }
 
@@ -692,19 +692,18 @@ int usbAsyncReadWithTimeout(unsigned int chan, unsigned char *data, int len, int
     int ret;
     int intc;
     int i;
-    int k1;
+    int k1 = 0;
     SceUInt *pTimeout = NULL;
 
-    ENTER_SYSCALL(k1);
-
     if ((chan >= MAX_ASYNC_CHANNELS) || (g_async_chan[chan] == NULL)) {
-        EXIT_SYSCALL(k1);
         return -1;
     }
 
     if (timeout >= 0) {
         pTimeout = (SceUInt *) &timeout;
     }
+
+    ENTER_SYSCALL(k1);
 
     ret = sceKernelWaitEventFlag(g_asyncevent, 1 << chan, PSP_EVENT_WAITOR | PSP_EVENT_WAITCLEAR, NULL, pTimeout);
     if (ret < 0) {
@@ -754,12 +753,12 @@ int usbAsyncWrite(unsigned int chan, const void *data, int len) {
     char buffer[512];
     struct AsyncCommand *cmd;
     int written = 0;
-    int k1;
+    int k1 = 0;
 
     ENTER_SYSCALL(k1);
 
     do {
-        if (!usb_connected()) {
+        if (!usbhostfs_connected()) {
             DEBUG_PRINTF("Error PC side not connected\n");
             break;
         }
@@ -771,10 +770,9 @@ int usbAsyncWrite(unsigned int chan, const void *data, int len) {
         while (written < len) {
             int size;
 
-            size = (len - written) > (sizeof(buffer) - sizeof(struct AsyncCommand)) ? (sizeof(buffer) -
-                                                                                       sizeof(struct AsyncCommand)) : (
-                           len - written);
-            memcpy(&buffer[sizeof(struct AsyncCommand)], data + written, size);
+            size = (len - written) > (sizeof(buffer) - sizeof(struct AsyncCommand)) ?
+                   (sizeof(buffer) - sizeof(struct AsyncCommand)) : (size_t) (len - written);
+            memcpy(&buffer[sizeof(struct AsyncCommand)], data + written, (size_t) size);
             if (send_async(buffer, size + sizeof(struct AsyncCommand))) {
                 written += size;
             } else {
@@ -794,12 +792,12 @@ int usbWriteBulkData(int chan, const void *data, int len) {
     int ret = -1;
     int err;
     struct BulkCommand cmd;
-    int k1;
+    int k1 = 0;
 
     ENTER_SYSCALL(k1);
 
     do {
-        if (!usb_connected()) {
+        if (!usbhostfs_connected()) {
             DEBUG_PRINTF("Error PC side not connected\n");
             break;
         }
@@ -850,7 +848,7 @@ int usbWriteBulkData(int chan, const void *data, int len) {
 
 int usbWaitForConnect(void) {
     int ret;
-    int k1;
+    int k1 = 0;
 
     ENTER_SYSCALL(k1);
 
@@ -859,7 +857,8 @@ int usbWaitForConnect(void) {
     }
 
     ret = sceKernelWaitEventFlag(g_mainevent, USB_EVENT_CONNECT, PSP_EVENT_WAITOR, NULL, NULL);
-    if (ret == 0) {
+    if (ret < 0) {
+        DEBUG_PRINTF("usbWaitForConnect: sceKernelWaitEventFlag: 0x%08X\n", ret);
         EXIT_SYSCALL(k1);
         return 1;
     }
@@ -881,7 +880,7 @@ int usb_thread(SceSize size, void *argp) {
 
         if (ret < 0) {
             DEBUG_PRINTF("Error waiting on event flag %08X\n", ret);
-            sceKernelExitDeleteThread(0);
+            break;
         }
 
         if (result & USB_EVENT_QUIT) {
@@ -913,6 +912,7 @@ int usb_thread(SceSize size, void *argp) {
                     if (send_hello_cmd()) {
                         set_ayncreq(async_data, sizeof(async_data));
                         g_connected = 1;
+                        DEBUG_PRINTF("USB_EVENT_CONNECT\n");
                         sceKernelSetEventFlag(g_mainevent, USB_EVENT_CONNECT);
                     }
                 }
@@ -926,7 +926,7 @@ int usb_thread(SceSize size, void *argp) {
 /* USB start function */
 int start_func(int size, void *p) {
 
-    DEBUG_PRINTF("Start Function %p\n", p);
+    DEBUG_PRINTF("usb: start_func\n");
 
     /* Fill in the descriptor tables */
     memset(usbdata, 0, sizeof(usbdata));
@@ -966,25 +966,23 @@ int start_func(int size, void *p) {
     g_driver.descriptor = (SceUdcdDeviceDescriptor *) usbdata[1].devdesc;
     g_driver.configuration = (SceUdcdConfiguration *) &usbdata[1].config;
 
-    DEBUG_PRINTF("pusbdata %p\n", &usbdata);
-
     memset(g_async_chan, 0, sizeof(g_async_chan));
 
-    g_mainevent = sceKernelCreateEventFlag("USBEvent", 0x200, 0, NULL);
+    g_mainevent = sceKernelCreateEventFlag("USBEvent", 0x1000, 0, NULL);
     if (g_mainevent < 0) {
-        MODPRINTF("Couldn't create event flag %08X\n", g_mainevent);
+        MODPRINTF("Couldn't create event USBEvent flag %08X\n", g_mainevent);
         return -1;
     }
 
-    g_transevent = sceKernelCreateEventFlag("USBEventTrans", 0x200, 0, NULL);
+    g_transevent = sceKernelCreateEventFlag("USBEventTrans", 0x1000, 0, NULL);
     if (g_transevent < 0) {
-        MODPRINTF("Couldn't create trans event flag %08X\n", g_transevent);
+        MODPRINTF("Couldn't create USBEventTrans event flag %08X\n", g_transevent);
         return -1;
     }
 
-    g_asyncevent = sceKernelCreateEventFlag("USBEventAsync", 0x200, 0, NULL);
+    g_asyncevent = sceKernelCreateEventFlag("USBEventAsync", 0x1000, 0, NULL);
     if (g_asyncevent < 0) {
-        MODPRINTF("Couldn't create async event flag %08X\n", g_asyncevent);
+        MODPRINTF("Couldn't create USBEventAsync event flag %08X\n", g_asyncevent);
         return -1;
     }
 
@@ -1010,32 +1008,40 @@ int start_func(int size, void *p) {
 
 /* USB stop function */
 int stop_func(int size, void *p) {
-    DEBUG_PRINTF("Stop function %p\n", p);
+
+    DEBUG_PRINTF("usb: stop_func\n");
 
     if (g_thid >= 0) {
+        DEBUG_PRINTF("sceKernelSetEventFlag(g_mainevent, USB_EVENT_QUIT)\n");
         sceKernelSetEventFlag(g_mainevent, USB_EVENT_QUIT);
         g_thid = -1;
     }
 
     if (g_mainevent >= 0) {
+        DEBUG_PRINTF("sceKernelDeleteEventFlag(g_mainevent)\n");
         sceKernelDeleteEventFlag(g_mainevent);
         g_mainevent = -1;
     }
 
     if (g_transevent >= 0) {
+        DEBUG_PRINTF("sceKernelDeleteEventFlag(g_transevent)\n");
         sceKernelDeleteEventFlag(g_transevent);
         g_mainevent = -1;
     }
 
     if (g_asyncevent >= 0) {
+        DEBUG_PRINTF("sceKernelDeleteEventFlag(g_asyncevent)\n");
         sceKernelDeleteEventFlag(g_asyncevent);
         g_asyncevent = -1;
     }
 
     if (g_mainsema >= 0) {
+        DEBUG_PRINTF("sceKernelDeleteEventFlag(g_mainsema)\n");
         sceKernelDeleteSema(g_mainsema);
         g_mainsema = -1;
     }
+
+    DEBUG_PRINTF("stop_func\n");
 
     return 0;
 }
@@ -1059,7 +1065,7 @@ struct UsbDriver g_driver =
                 NULL
         };
 
-int usbhost_start() {
+int usbhostfs_start() {
 
     int ret = sceUsbbdRegister(&g_driver);
     memset(g_async_chan, 0, sizeof(g_async_chan));
@@ -1106,23 +1112,67 @@ int usbhost_start() {
     return 0;
 }
 
-int usbhost_stop() {
+int usbhostfs_stop() {
 
+    DEBUG_PRINTF("ksceUdcdDeactivate()\n");
     ksceUdcdDeactivate();
+
+    DEBUG_PRINTF("ksceUdcdStop(%s)\n", HOSTFSDRIVER_NAME);
     ksceUdcdStop(HOSTFSDRIVER_NAME, 0, NULL);
+
+    DEBUG_PRINTF("ksceUdcdStop(USBDeviceControllerDriver)\n");
     ksceUdcdStop("USBDeviceControllerDriver", 0, NULL);
+
+    DEBUG_PRINTF("sceUsbbdUnregister()\n");
     int ret = sceUsbbdUnregister(&g_driver);
-    DEBUG_PRINTF("sceUsbbdUnregister %08X\n", ret);
+    DEBUG_PRINTF("sceUsbbdUnregister = %08X\n", ret);
 
     return ret;
+}
+
+void p2s_debug(const char *fmt, ...) {
+
+    char buffer[256];
+    memset(buffer, 0, 256);
+    va_list args;
+    va_start(args, fmt);
+    int len = vsnprintf(buffer, 256, fmt, args);
+    va_end(args);
+
+    if (len > 0) {
+        ksceDebugPrintf2(0, 0, buffer, len);
+    }
+}
+
+#ifdef __STANDALONE__
+
+static SceUID thid = -1;
+
+static int host_thread(SceSize args, void *argp) {
+
+    ksceKernelDelayThread(1000 * 1000 * 5);
+
+    int res = usbhostfs_start();
+    if (res != 0) {
+        return -1;
+    }
+
+    usbWaitForConnect();
+
+    set_hooks_io();
+
+    ksceKernelExitDeleteThread(0);
+    return 0;
 }
 
 void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
-    if (usbhost_start() < 0) {
-        usbhost_stop();
+    thid = ksceKernelCreateThread("usbhostfs", host_thread, 64, 0x2000, 0, 0x10000, 0);
+    if (thid >= 0) {
+        ksceKernelStartThread(thid, 0, NULL);
+    } else {
         return SCE_KERNEL_START_FAILED;
     }
 
@@ -1131,7 +1181,10 @@ int module_start(SceSize argc, const void *args) {
 
 int module_stop(SceSize argc, const void *args) {
 
-    usbhost_stop();
+    usbhostfs_stop();
+    delete_hooks_io();
 
     return SCE_KERNEL_STOP_SUCCESS;
 }
+
+#endif

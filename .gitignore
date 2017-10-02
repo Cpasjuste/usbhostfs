@@ -9,9 +9,3 @@ CTestTestfile.cmake
 build
 psp2shell_cli/build
 cmake-build-*
-
-# psp2shell client
-*.o
-psp2shell_cli/psp2shell_cli
-psp2shell_cli/objs
-release
