@@ -180,9 +180,17 @@ void make_nocase(const char *rootdir, char *path, int dir) {
 }
 
 int make_path(unsigned int drive, const char *path, char *retpath, int dir) {
+
     char hostpath[PATH_MAX];
     int len;
     int ret = -1;
+
+    char new_path[PATH_MAX];
+    len = (int) strlen(path);
+    if (len > 5) {
+        memset(new_path, 0, (size_t) len);
+        strncpy(new_path, path + 6, (size_t) (len - 5));
+    }
 
     if (drive >= MAX_HOSTDRIVES) {
         fprintf(stderr, "Host drive number is too large (%d)\n", drive);
@@ -196,7 +204,7 @@ int make_path(unsigned int drive, const char *path, char *retpath, int dir) {
 
     do {
 
-        len = snprintf(hostpath, PATH_MAX, "%s%s", g_drives[drive].currdir, path);
+        len = snprintf(hostpath, PATH_MAX, "%s%s", g_drives[drive].currdir, new_path);
         if ((len < 0) || (len >= PATH_MAX)) {
             fprintf(stderr, "Path length too big (%d)\n", len);
             break;

@@ -35,7 +35,7 @@
 #define getgid()
 #endif
 
-#ifdef READLINE_SHELL
+#ifdef __PSP2SHELL__
 
 #include <readline/readline.h>
 #include "p2s_msg.h"
@@ -177,7 +177,7 @@ usb_dev_handle *wait_for_device(void) {
         hDev = open_device(usb_get_busses());
         if (hDev) {
             fprintf(stderr, "Connected to device\n");
-#ifdef READLINE_SHELL
+#ifdef __PSP2SHELL__
             rl_refresh_line(0, 0);
 #endif
             break;
@@ -297,7 +297,7 @@ void do_hostfs(struct HostFsCmd *cmd, int readlen) {
     };
 }
 
-#ifdef READLINE_SHELL
+#ifdef __PSP2SHELL__
 void do_async(struct AsyncCommand *cmd, int readlen) {
 
     uint8_t *data;
@@ -406,7 +406,7 @@ int start_hostfs(void) {
                             rl_refresh_line(0, 0);
                             break;
                         }
-#ifdef READLINE_SHELL
+#ifdef __PSP2SHELL__
                         do_async((struct AsyncCommand *) data, readlen);
 #endif
                     } else if (LE32(data[0]) == BULK_MAGIC) {
@@ -531,7 +531,7 @@ int exit_app(void) {
         setegid(0);
         close_device(g_hDev);
     }
-#ifndef READLINE_SHELL
+#ifndef __PSP2SHELL__
     exit(1);
 #endif
     return 0;
@@ -863,7 +863,7 @@ void *async_thread(void *arg) {
     FD_ZERO(&read_save);
 
     if (!g_daemon) {
-#ifdef READLINE_SHELL
+#ifdef __PSP2SHELL__
         psp2sell_cli_init();
 #endif
         FD_SET(STDIN_FILENO, &read_save);
@@ -877,7 +877,7 @@ void *async_thread(void *arg) {
         if (select(fileno(stdin) + 1, &read_save, NULL, NULL, NULL) < 0) {
             //continue (CTRL+C)
         } else if (FD_ISSET(fileno(stdin), &read_save)) {
-#ifdef READLINE_SHELL
+#ifdef __PSP2SHELL__
             rl_callback_read_char();
 #else
             char buffer[4096];

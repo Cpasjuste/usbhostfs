@@ -1144,12 +1144,13 @@ void p2s_debug(const char *fmt, ...) {
     }
 }
 
-#ifdef __STANDALONE__
+#ifndef __PSP2SHELL__
 
 static SceUID thid = -1;
 
 static int host_thread(SceSize args, void *argp) {
 
+    // the module crash the device if started too early
     ksceKernelDelayThread(1000 * 1000 * 5);
 
     int res = usbhostfs_start();

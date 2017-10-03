@@ -23,7 +23,7 @@ add_executable(${PROJECT_NAME}
         )
 
 target_compile_options(${PROJECT_NAME} PRIVATE
-        -D__PSP2__ -D__KERNEL__ -D__USB__ -D__STANDALONE__
+        -D__PSP2__ -D__KERNEL__ -D__USB__
         )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

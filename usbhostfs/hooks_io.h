@@ -15,6 +15,12 @@
 
 #define MAX_HOST_FD 128
 
+typedef struct _fopen_fd {
+    uint32_t sce_reserved[2];
+    int fd;
+    SceUID uid;
+} fopen_fd;
+
 typedef struct Hook {
     SceUID uid;
     tai_hook_ref_t ref;
@@ -91,5 +97,10 @@ int _ksceIoDevctl(const char *dev, unsigned int cmd, void *indata, int inlen, vo
 void set_hooks_io();
 
 void delete_hooks_io();
+
+#ifdef DEBUG
+void p2s_debug(const char *fmt, ...);
+#define printf p2s_debug
+#endif
 
 #endif //_HOOKS_IO_H_
