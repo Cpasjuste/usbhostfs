@@ -1,5 +1,5 @@
 OUTPUT=usbhostfs_pc
-OBJS=main.o
+OBJS=main.o hostfs.o
 LIBS=-lusb -lpthread
 CFLAGS=-Wall -ggdb -I../usbhostfs -DPC_SIDE -D_FILE_OFFSET_BITS=64 -I. -O2
 LDFLAGS=-L.
@@ -20,8 +20,8 @@ LIBS += -lreadline -lcurses
 endif
 
 ifdef BUILD_WIN32
-CFLAGS  += -I../windows/lib -Wno-format
-LDFLAGS += -L../windows/lib
+CFLAGS  += -Iwindows/lib -Wno-format
+LDFLAGS += -Lwindows/lib
 OUTPUT := $(OUTPUT).exe
 endif
 

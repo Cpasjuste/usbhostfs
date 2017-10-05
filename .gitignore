@@ -6,6 +6,5 @@ install_manifest.txt
 CTestTestfile.cmake
 
 *.idea
-build
-psp2shell_cli/build
-cmake-build-*
+*build*
+*.o

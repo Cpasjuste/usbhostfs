@@ -16,17 +16,19 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <usb.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <pthread.h>
+#include <usb.h>
+#ifdef __CYGWIN__
+#include <dirent.h>
+#endif
 
 #include "psp_fileio.h"
 #include "usbhostfs.h"
 #include "hostfs.h"
 
 #ifdef __CYGWIN__
-#include <sys/vfs.h>
 #define NO_UID_CHECK
 /* Define out set* and get* calls for cygwin as they are unnecessary and can cause issues */
 #define seteuid(x)

@@ -5,17 +5,53 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <usb.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include <utime.h>
 #include <pthread.h>
+#include <usb.h>
 #include <sys/statvfs.h>
+#include <sys/stat.h>
+#ifdef __CYGWIN__
+#include <dirent.h>
+#endif
 
 #include "psp_fileio.h"
 #include "usbhostfs.h"
 #include "hostfs.h"
+
+#if defined BUILD_BIGENDIAN || defined _BIG_ENDIAN
+uint16_t swap16(uint16_t i)
+{
+    uint8_t *p = (uint8_t *) &i;
+    uint16_t ret;
+
+    ret = (p[1] << 8) | p[0];
+
+    return ret;
+}
+
+uint32_t swap32(uint32_t i)
+{
+    uint8_t *p = (uint8_t *) &i;
+    uint32_t ret;
+
+    ret = (p[3] << 24) | (p[2] << 16) | (p[1] << 8) | p[0];
+
+    return ret;
+}
+
+uint64_t swap64(uint64_t i)
+{
+    uint8_t *p = (uint8_t *) &i;
+    uint64_t ret;
+
+    ret = (uint64_t) p[0] | ((uint64_t) p[1] << 8) | ((uint64_t) p[2] << 16) | ((uint64_t) p[3] << 24)
+        | ((uint64_t) p[4] << 32) | ((uint64_t) p[5] << 40) | ((uint64_t) p[6] << 48) | ((uint64_t) p[7] << 56);
+
+    return ret;
+}
+#endif
 
 char g_rootdir[PATH_MAX];
 struct HostDrive g_drives[MAX_HOSTDRIVES];
@@ -412,14 +448,6 @@ int fill_statbyfd(int32_t fd, SceIoStat *scestat) {
     fill_time(st.st_mtime, &scestat->mtime);
 
     return 0;
-}
-
-static int filter_dots(const struct dirent *e) {
-    if (strcmp(e->d_name, ".") == 0
-        || strcmp(e->d_name, "..") == 0) {
-        return 0;
-    }
-    return 1;
 }
 
 int dir_open(int drive, const char *dirname) {
@@ -888,7 +916,7 @@ int handle_lseek(struct usb_dev_handle *hDev, struct HostFsLseekCmd *cmd, int cm
         }
 
         fid = LE32(cmd->fid);
-        V_PRINTF(2, "Lseek command fid: %d, ofs: %ld, whence: %d\n", fid, LE64(cmd->ofs), LE32(cmd->whence));
+        V_PRINTF(2, "Lseek command fid: %d, ofs: %lld, whence: %d\n", fid, LE64(cmd->ofs), LE32(cmd->whence));
         if ((fid > STDERR_FILENO) && (fid < MAX_FILES) && (open_files[fid].opened)) {
             /* TODO: Probably should ensure whence is mapped across, just in case */
             resp.ofs = LE64((int64_t) lseek(fid, (off_t) LE64(cmd->ofs), LE32(cmd->whence)));
@@ -1262,8 +1290,7 @@ int handle_rename(struct usb_dev_handle *hDev, struct HostFsRenameCmd *cmd, int 
     char newpath[PATH_MAX];
     char destpath[PATH_MAX];
     int oldpathlen;
-    int newpathlen;
-
+	
     memset(&resp, 0, sizeof(resp));
     resp.cmd.magic = LE32(HOSTFS_MAGIC);
     resp.cmd.command = LE32(HOSTFS_CMD_RENAME);
@@ -1291,7 +1318,6 @@ int handle_rename(struct usb_dev_handle *hDev, struct HostFsRenameCmd *cmd, int 
 
         /* Really should check this better ;) */
         oldpathlen = strlen(path);
-        newpathlen = strlen(path + oldpathlen + 1);
 
         /* If the old path is absolute and the new path is relative then rebase newpath */
         if ((*path == '/') && (*(path + oldpathlen + 1) != '/')) {
@@ -1427,20 +1453,6 @@ int get_drive_info(SceIoDevInfo *info, unsigned int drive) {
     }
 
     do {
-#ifdef __CYGWIN__
-        struct statfs st;
-
-        if(statfs(g_drives[drive].rootdir, &st) < 0)
-        {
-            fprintf(stderr, "Could not stat %s (%s)\n", g_drives[drive].rootdir, strerror(errno));
-            break;
-        }
-
-        info->cluster_size = (uint32_t) (st.f_frsize);
-        info->max_size = st.f_blocks * info->cluster_size;
-        info->free_size = st.f_bfree * info->cluster_size;
-        info->unk = 0;
-#else
         struct statvfs st;
 
         if (statvfs(g_drives[drive].rootdir, &st) < 0) {
@@ -1449,11 +1461,10 @@ int get_drive_info(SceIoDevInfo *info, unsigned int drive) {
         }
 
         info->cluster_size = (uint32_t) (st.f_frsize);
-        info->max_size = st.f_blocks * info->cluster_size;
-        info->free_size = st.f_bfree * info->cluster_size;
+        info->max_size = (SceOff)st.f_blocks * (SceOff)info->cluster_size;
+        info->free_size = (SceOff)st.f_bfree * (SceOff)info->cluster_size;
         info->unk = 0;
-#endif
-
+		
         ret = 0;
     } while (0);
 
