@@ -1170,7 +1170,7 @@ void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
-    thid = ksceKernelCreateThread("usbhostfs", host_thread, 64, 0x2000, 0, 0x10000, 0);
+    thid = ksceKernelCreateThread("usbhostfs", host_thread, 64, 0x1000, 0, 0x10000, 0);
     if (thid >= 0) {
         ksceKernelStartThread(thid, 0, NULL);
     } else {
