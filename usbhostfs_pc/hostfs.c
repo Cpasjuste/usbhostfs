@@ -1057,7 +1057,11 @@ int handle_mkdir(struct usb_dev_handle *hDev, struct HostFsMkdirCmd *cmd, int cm
 
         V_PRINTF(2, "Mkdir command mode %08X, name %s\n", LE32(cmd->mode), path);
         if (make_path(LE32(cmd->fsnum), path, fullpath, 0) == 0) {
+#ifdef __CYGWIN__
+            if (mkdir(fullpath, 0777) < 0) {
+#else
             if (mkdir(fullpath, LE32(cmd->mode)) < 0) {
+#endif
                 resp.res = LE32(GETERROR(errno));
             } else {
                 resp.res = LE32(0);
@@ -1368,7 +1372,7 @@ int handle_chdir(struct usb_dev_handle *hDev, struct HostFsChdirCmd *cmd, int cm
         }
 
         if (LE32(cmd->cmd.extralen) == 0) {
-            fprintf(stderr, "Error, no filename passed with mkdir command\n");
+            fprintf(stderr, "Error, no filename passed with chdir command\n");
             break;
         }
 
