@@ -992,7 +992,7 @@ int start_func(int size, void *p) {
         return -1;
     }
 
-    g_thid = sceKernelCreateThread("USBThread", usb_thread, 10, 0x10000, 0, NULL);
+    g_thid = sceKernelCreateThread("USBThread", usb_thread, 0x64, 0x10000, 0, NULL);
     if (g_thid < 0) {
         MODPRINTF("Couldn't create usb thread %08X\n", g_thid);
         return -1;
@@ -1067,8 +1067,9 @@ struct UsbDriver g_driver =
 
 int usbhostfs_start() {
 
-    int ret = sceUsbbdRegister(&g_driver);
     memset(g_async_chan, 0, sizeof(g_async_chan));
+
+    int ret = sceUsbbdRegister(&g_driver);
     DEBUG_PRINTF("sceUsbbdRegister %08X\n", ret);
 
     ret = ksceUdcdDeactivate();
@@ -1151,7 +1152,7 @@ static SceUID thid = -1;
 static int host_thread(SceSize args, void *argp) {
 
     // the module crash the device if started too early
-    ksceKernelDelayThread(1000 * 1000 * 5);
+    ksceKernelDelayThread(1000 * 1000 * 8);
 
     int res = usbhostfs_start();
     if (res != 0) {
@@ -1162,8 +1163,7 @@ static int host_thread(SceSize args, void *argp) {
 
     set_hooks_io();
 
-    ksceKernelExitDeleteThread(0);
-    return 0;
+    return ksceKernelExitDeleteThread(0);
 }
 
 void _start() __attribute__ ((weak, alias ("module_start")));
