@@ -869,6 +869,7 @@ int usbWaitForConnect(void) {
 
 /* USB thread to handle attach/detach */
 int usb_thread(SceSize size, void *argp) {
+
     int ret;
     u32 result;
 
@@ -1149,7 +1150,7 @@ void p2s_debug(const char *fmt, ...) {
 
 static SceUID thid = -1;
 
-static int host_thread(SceSize args, void *argp) {
+static int start_thread(SceSize args, void *argp) {
 
     // the module crash the device if started too early
     ksceKernelDelayThread(1000 * 1000 * 8);
@@ -1170,7 +1171,7 @@ void _start() __attribute__ ((weak, alias ("module_start")));
 
 int module_start(SceSize argc, const void *args) {
 
-    thid = ksceKernelCreateThread("usbhostfs", host_thread, 64, 0x1000, 0, 0x10000, 0);
+    thid = ksceKernelCreateThread("usbhostfs", start_thread, 64, 0x1000, 0, 0x10000, 0);
     if (thid >= 0) {
         ksceKernelStartThread(thid, 0, NULL);
     } else {
