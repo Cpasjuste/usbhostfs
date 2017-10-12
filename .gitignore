@@ -8,3 +8,4 @@ CTestTestfile.cmake
 *.idea
 *build*
 *.o
+usbhostfs_pc.exe
