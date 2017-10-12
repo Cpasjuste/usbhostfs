@@ -1,7 +1,7 @@
 USBHOSTFS VITA
 ==============
 
-**This is a port of usbhostfs psp plugin to the psp2 (vita). It had a "host0" drive on the vita device, allowing, for example, to browse your computer hard drive from VitaShell**
+**This is a port of usbhostfs psp plugin to the psp2 (vita). It add a "host0" drive on the vita device, allowing, for example, to browse your computer hard drive from VitaShell**
 
 -----
 
