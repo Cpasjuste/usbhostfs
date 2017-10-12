@@ -37,11 +37,11 @@ make BUILD_WIN32=1
 
 Usage
 --------
-windows : install libusb driver from "usbhotfs_release\windows\driver*" directory
-windows 10 : disable driver signature verification (https://goo.gl/tyfhHW)
-run "usbhostfs_pc" on the computer
-connect the vita with usb cable
-use "VitaShell" or any application with host0 support to brows the computer 
+>- windows : install libusb driver from "usbhotfs_release\windows\driver*" directory
+>- windows 10 : disable driver signature verification (https://goo.gl/tyfhHW)
+>- run "usbhostfs_pc" on the computer
+>- connect the vita with usb cable
+>- use "VitaShell" or any application with host0 support to brows the computer 
 
 Thanks
 ----------
