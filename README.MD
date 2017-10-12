@@ -7,7 +7,7 @@ USBHOSTFS VITA
 
 **Building the plugins (linux)**
 ```
-mkdir cmake-build && cd cmake-build
+cd usbhostfs && mkdir cmake-build && cd cmake-build
 cmake ..
 make
 ```
