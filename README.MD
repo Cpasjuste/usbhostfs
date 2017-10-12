@@ -37,7 +37,7 @@ make BUILD_WIN32=1
 
 Usage
 --------
->- windows : install libusb driver from "usbhotfs_release\windows\driver*" directory
+>- windows : install libusb driver from "usbhostfs_release\windows\driver*" directory
 >- windows 10 : disable driver signature verification (https://goo.gl/tyfhHW)
 >- run "usbhostfs_pc" on the computer
 >- connect the vita with usb cable
