@@ -98,9 +98,8 @@ void set_hooks_io();
 
 void delete_hooks_io();
 
-#ifdef DEBUG
 void p2s_debug(const char *fmt, ...);
+
 #define printf p2s_debug
-#endif
 
 #endif //_HOOKS_IO_H_

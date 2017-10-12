@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
+#set(CMAKE_VERBOSE_MAKEFILE ON)
 
 if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     if (DEFINED ENV{VITASDK})
@@ -11,8 +12,16 @@ endif ()
 project(usbhostfs)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -Wall -O3 -std=gnu99")
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif ()
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,-q -Wall -std=gnu99 -fno-builtin-printf")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -fno-exceptions")
+set(CMAKE_C_FLAGS_DEBUG "-g -O0 -DDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
+set(CMAKE_C_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 

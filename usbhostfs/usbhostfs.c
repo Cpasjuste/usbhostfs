@@ -1133,17 +1133,17 @@ int usbhostfs_stop() {
 }
 
 void p2s_debug(const char *fmt, ...) {
-
+#ifdef DEBUG
     char buffer[256];
     memset(buffer, 0, 256);
     va_list args;
     va_start(args, fmt);
     int len = vsnprintf(buffer, 256, fmt, args);
     va_end(args);
-
     if (len > 0) {
         ksceDebugPrintf2(0, 0, buffer, len);
     }
+#endif
 }
 
 #ifndef __PSP2SHELL__

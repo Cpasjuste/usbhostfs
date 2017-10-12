@@ -312,18 +312,12 @@ struct BulkCommand {
 } __attribute__((packed));
 
 #ifndef PC_SIDE
-// use psp2shell to print
-#ifdef DEBUG
 
 void p2s_debug(const char *fmt, ...);
 
 #define printf p2s_debug
 #define DEBUG_PRINTF p2s_debug
 #define MODPRINTF p2s_debug
-#else
-#define DEBUG_PRINTF(fmt, ...)
-#define MODPRINTF DEBUG_PRINTF
-#endif
 
 int usbhostfs_connected(void);
 
